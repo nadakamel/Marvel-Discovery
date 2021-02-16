@@ -25,8 +25,8 @@ extension CharacterDetailsViewController: UICollectionViewDelegate, UICollection
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "MiddleSectionCell", for: indexPath) as! MiddleSectionCollectionViewCell
-        cell.middleSectionImageView.sd_setShowActivityIndicatorView(true)
-        cell.middleSectionImageView.sd_setIndicatorStyle(.white)
+//        cell.middleSectionImageView.sd_setShowActivityIndicatorView(true)
+//        cell.middleSectionImageView.sd_setIndicatorStyle(.white)
         cell.middleSectionImageView.sd_setImage(with: URL(string: middleSectionCurrentRowData[indexPath.row].image))
         cell.middleSectionTitleLbl.text = middleSectionCurrentRowData[indexPath.row].name
         return cell
@@ -50,7 +50,7 @@ extension CharacterDetailsViewController: UICollectionViewDelegate, UICollection
 
 class CharacterDetailsViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
 
-    var character: (id: Int32, name: String?, thumbnail: String?, description: String?) = (0,"","","")
+    var character = Character()
     var items: [Item] = []
     var urls: [Url] = []
     
@@ -92,19 +92,19 @@ class CharacterDetailsViewController: UIViewController, UITableViewDelegate, UIT
             }
             else {
                 print("No internet is available!")
-                let thumbnailsList = self.fetchThumbnailEntityDataPerCharacterID(characterID: character.id)
+                let thumbnailsList = self.fetchThumbnailEntityDataPerCharacterID(characterID: Int32(character.id))
                 for thumbnail in thumbnailsList {
                     if(thumbnail.category == "comics") {
-                        self.comics.append((thumbnail.name!,thumbnail.path!))
+                        self.comics.append((thumbnail.name,thumbnail.path))
                     }
                     else if(thumbnail.category == "series") {
-                        self.series.append((thumbnail.name!,thumbnail.path!))
+                        self.series.append((thumbnail.name,thumbnail.path))
                     }
                     else if(thumbnail.category == "stories") {
-                        self.stories.append((thumbnail.name!,thumbnail.path!))
+                        self.stories.append((thumbnail.name,thumbnail.path))
                     }
                     else if(thumbnail.category == "events") {
-                        self.events.append((thumbnail.name!,thumbnail.path!))
+                        self.events.append((thumbnail.name,thumbnail.path))
                     }
                 }
                 self.characterDetailsTableView.reloadData()
@@ -114,53 +114,53 @@ class CharacterDetailsViewController: UIViewController, UITableViewDelegate, UIT
     
     func getThumbnails(list: [Item]) {
         var thumbnails: [[String:AnyObject]] = []
-        let group = DispatchGroup()
-        for item in list {
-            let urlPath = item.resourceURI!+"?ts=1&apikey="+NetworkLayer.publicKey+"&hash="+NetworkLayer.hash
-            group.enter()
-            Alamofire.request(urlPath, method: .get, parameters: nil).responseJSON() { response in
-                let statusCode = response.response?.statusCode
-                if (statusCode == 200) {
-                    if let requestResponse = response.result.value {
-                        let responseDict = requestResponse as! NSDictionary
-                        let data = responseDict["data"] as! NSDictionary
-                        let results = data["results"] as! NSArray
-                        let resultsDict = results[0] as! NSDictionary
-                        let thumbnailDict = resultsDict["thumbnail"] as? NSDictionary
-                        if(thumbnailDict != nil) {
-                            var imageURL: String = thumbnailDict!["path"] as! String
-                            imageURL.append(".")
-                            imageURL.append(thumbnailDict!["extension"] as! String)
-                            thumbnails.append(["category":item.category as AnyObject,
-                                               "fk_character_id":self.character.id as AnyObject,
-                                               "name":item.name as AnyObject,
-                                               "path":imageURL as AnyObject])
-                            if(item.category == "comics") {
-                                self.comics.append((item.name!,imageURL))
-                            }
-                            else if(item.category == "series") {
-                                self.series.append((item.name!, imageURL))
-                            }
-                            else if(item.category == "stories") {
-                                self.stories.append((item.name!, imageURL))
-                            }
-                            else if(item.category == "events") {
-                                self.events.append((item.name!, imageURL))
-                            }
-                        }
-                    }
-                }
-                group.leave()
-            }
-        }
-        group.notify(queue: .main) {
-            print("Finished all requests.")
-            // Save thumbnails in database for offline use
-            self.saveThumbnailInCoreDataWith(array: thumbnails)
-            
-            // Reload table view
-            self.characterDetailsTableView.reloadData()
-        }
+//        let group = DispatchGroup()
+//        for item in list {
+//            let urlPath = item.resourceURI!+"?ts=1&apikey="+NetworkLayer.publicKey+"&hash="+NetworkLayer.hash
+//            group.enter()
+//            Alamofire.request(urlPath, method: .get, parameters: nil).responseJSON() { response in
+//                let statusCode = response.response?.statusCode
+//                if (statusCode == 200) {
+//                    if let requestResponse = response.result.value {
+//                        let responseDict = requestResponse as! NSDictionary
+//                        let data = responseDict["data"] as! NSDictionary
+//                        let results = data["results"] as! NSArray
+//                        let resultsDict = results[0] as! NSDictionary
+//                        let thumbnailDict = resultsDict["thumbnail"] as? NSDictionary
+//                        if(thumbnailDict != nil) {
+//                            var imageURL: String = thumbnailDict!["path"] as! String
+//                            imageURL.append(".")
+//                            imageURL.append(thumbnailDict!["extension"] as! String)
+//                            thumbnails.append(["category":item.category as AnyObject,
+//                                               "fk_character_id":self.character.id as AnyObject,
+//                                               "name":item.name as AnyObject,
+//                                               "path":imageURL as AnyObject])
+//                            if(item.category == "comics") {
+//                                self.comics.append((item.name!,imageURL))
+//                            }
+//                            else if(item.category == "series") {
+//                                self.series.append((item.name!, imageURL))
+//                            }
+//                            else if(item.category == "stories") {
+//                                self.stories.append((item.name!, imageURL))
+//                            }
+//                            else if(item.category == "events") {
+//                                self.events.append((item.name!, imageURL))
+//                            }
+//                        }
+//                    }
+//                }
+//                group.leave()
+//            }
+//        }
+//        group.notify(queue: .main) {
+//            print("Finished all requests.")
+//            // Save thumbnails in database for offline use
+//            self.saveThumbnailInCoreDataWith(array: thumbnails)
+//
+//            // Reload table view
+//            self.characterDetailsTableView.reloadData()
+//        }
     }
     
     // MARK: - Table view data source
@@ -222,9 +222,9 @@ class CharacterDetailsViewController: UIViewController, UITableViewDelegate, UIT
         if indexPath.section == 0 {
             let cell = tableView.dequeueReusableCell(withIdentifier: self.topCellReuseIdentifier, for: indexPath) as! CharacterDetailsTopTableViewCell
             // Configure the cell...
-            cell.characterImageView.sd_setImage(with: URL(string: character.thumbnail!))
+            cell.characterImageView.sd_setImage(with: URL(string: character.thumbnail))
             cell.characterNameLbl.text = character.name
-            if (character.description?.isEmpty)! {
+            if (character.desc.isEmpty) {
                 cell.characterDescriptionLbl.text = "No description found."
             }
             else {
@@ -256,7 +256,7 @@ class CharacterDetailsViewController: UIViewController, UITableViewDelegate, UIT
         else {
             let cell = tableView.dequeueReusableCell(withIdentifier: self.bottomCellReuseIdentifier, for: indexPath)
             // Configure the cell...
-            cell.textLabel?.text = urls[indexPath.row].type?.capitalized
+            cell.textLabel?.text = urls[indexPath.row].type.capitalized
             cell.textLabel?.font = UIFont.systemFont(ofSize: 15.0)
             cell.textLabel?.textColor = UIColor.white
             return cell
@@ -268,8 +268,8 @@ class CharacterDetailsViewController: UIViewController, UITableViewDelegate, UIT
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         if indexPath.section == 2 {
-            selectedBottomSectionCell.type = urls[indexPath.row].type!
-            selectedBottomSectionCell.url = urls[indexPath.row].url!
+            selectedBottomSectionCell.type = urls[indexPath.row].type
+            selectedBottomSectionCell.url = urls[indexPath.row].urlPath
             self.performSegue(withIdentifier:"RelatedLinksViewSegueID",sender: nil)
         }
     }

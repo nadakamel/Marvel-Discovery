@@ -22,9 +22,11 @@ class MainTableViewController: UITableViewController {
     let dispatchQueue = DispatchQueue(label: "Dispatch Queue", attributes: [], target: nil)
     var pageNo: Int = 0
     
-    var characters = [(id: Int32, name: String?, thumbnail: String?, description: String?)]()
+    var characters = [Character]()
 
-    var selectedCharacter: (id: Int32, name: String?, thumbnail: String?, description: String?) = (0,"","","")
+    var selectedCharacter = Character()
+    
+    let networkManager = NetworkManager()
     
     // MARK: -
     
@@ -40,7 +42,7 @@ class MainTableViewController: UITableViewController {
         self.navigationItem.rightBarButtonItem?.tintColor = UIColor.red
         self.navigationItem.rightBarButtonItem?.isEnabled = false
     
-        activityIndicatorView = UIActivityIndicatorView(activityIndicatorStyle: .gray)
+        activityIndicatorView = UIActivityIndicatorView(style: .gray)
         self.tableView.backgroundView = activityIndicatorView
     }
     
@@ -66,10 +68,7 @@ class MainTableViewController: UITableViewController {
             }
             else {
                 print("No internet is available!")
-                let charactersList = self.fetchCharacterEntityData()
-                for character in charactersList {
-                    self.characters.append((character.id as Int32, character.name as String?, character.thumbnail as String?, character.desc as String?))
-                }
+                characters = RealmHelper.getRealmCharacters() ?? []
                 self.navigationItem.rightBarButtonItem?.isEnabled = true
                 self.tableView.reloadData()
             }
@@ -82,101 +81,111 @@ class MainTableViewController: UITableViewController {
         var characters: [[String:AnyObject]] = []
         var items: [[String:AnyObject]] = []
         var urls: [[String:AnyObject]] = []
-        let group = DispatchGroup()
-        group.enter()
-        NetworkLayer.getCharactersHTTPRequest(offset: offset) { response in
-            let result = response as NSArray
-            let dict = result[0] as! NSDictionary
-            if let val = dict["error"] {
-                self.activityIndicatorView.stopAnimating()
-                let alert = UIAlertController(title: "Error", message: val as? String, preferredStyle: UIAlertControllerStyle.alert)
-                alert.addAction(UIAlertAction(title: "OK", style: UIAlertActionStyle.default, handler: nil))
-                self.present(alert, animated: true, completion: nil)
+        networkManager.fetchCharacters(offset: offset) { result in
+            switch result {
+            case .success(let response):
+                print(response as Array<Character>)
+                break
+            case .failure(let error):
+                print(error.localizedDescription)
             }
-            else {
-                for results in response {
-                    let result = results as! NSDictionary
-                    // Character
-                    let thumbnailDict = result["thumbnail"] as! NSDictionary
-                    let path: String = thumbnailDict["path"] as! String
-                    let ext: String = thumbnailDict["extension"] as! String
-                    let thumbnail: String = path + "." + ext
-                    characters.append(["description":result["description"] as AnyObject,
-                                       "id": result["id"] as! Int as AnyObject,
-                                       "name":result["name"] as AnyObject,
-                                       "resourceURI":result["resourceURI"] as AnyObject,
-                                       "thumbnail":thumbnail as AnyObject])
-                    
-                    self.characters.append((result["id"] as! Int32, result["name"] as? String, thumbnail, result["description"] as? String))
-                    
-                    // Comics
-                    let comics = result["comics"] as! NSDictionary
-                    let comics_items = comics["items"] as! NSArray
-                    for item in comics_items {
-                        let itemDict = item as! NSDictionary
-                        items.append(["category":"comics" as AnyObject,
-                                      "fk_character_id":result["id"] as! Int as AnyObject,
-                                      "name":itemDict["name"] as AnyObject,
-                                      "resourceURI":itemDict["resourceURI"] as AnyObject])
-                    }
-                    // Series
-                    let series = result["series"] as! NSDictionary
-                    let series_items = series["items"] as! NSArray
-                    for item in series_items {
-                        let itemDict = item as! NSDictionary
-                        items.append(["category":"series" as AnyObject,
-                                      "fk_character_id":result["id"] as! Int as AnyObject,
-                                      "name":itemDict["name"] as AnyObject,
-                                      "resourceURI":itemDict["resourceURI"] as AnyObject])
-                    }
-                    // Stories
-                    let stories = result["stories"] as! NSDictionary
-                    let stories_items = stories["items"] as! NSArray
-                    for item in stories_items {
-                        let itemDict = item as! NSDictionary
-                        items.append(["category":"stories" as AnyObject,
-                                      "fk_character_id":result["id"] as! Int as AnyObject,
-                                      "name":itemDict["name"] as AnyObject,
-                                      "resourceURI":itemDict["resourceURI"] as AnyObject,
-                                      "type":itemDict["type"] as AnyObject])
-                    }
-                    // Events
-                    let events = result["events"] as! NSDictionary
-                    let events_items = events["items"] as! NSArray
-                    for item in events_items {
-                        let itemDict = item as! NSDictionary
-                        items.append(["category":"events" as AnyObject,
-                                      "fk_character_id":result["id"] as! Int as AnyObject,
-                                      "name":itemDict["name"] as AnyObject,
-                                      "resourceURI":itemDict["resourceURI"] as AnyObject])
-                    }
-                    // Urls
-                    let URLs = result["urls"] as! NSArray
-                    for url in URLs {
-                        let urlDict = url as! NSDictionary
-                        urls.append(["fk_character_id":result["id"] as! Int as AnyObject, "type":urlDict["type"] as AnyObject, "url":urlDict["url"] as AnyObject])
-                    }
-                }
-                group.leave()
-            }
-            
-            group.notify(queue: .main, execute: {
-                print("Finished all requests.")
-                
-                // Save to database
-                print("----------------------")
-                self.saveCharacterInCoreDataWith(array: characters)
-                self.saveItemInCoreDataWith(array: items)
-                self.saveUrlInCoreDataWith(array: urls)
-                
-                self.activityIndicatorView.stopAnimating()
-                
-                self.navigationItem.rightBarButtonItem?.isEnabled = true
-                
-                self.tableView.separatorStyle = .singleLine
-                self.tableView.reloadData()
-            })
         }
+        
+//        let group = DispatchGroup()
+//        group.enter()
+//        NetworkLayer.getCharactersHTTPRequest(offset: offset) { response in
+//            let result = response as NSArray
+//            let dict = result[0] as! NSDictionary
+//            if let val = dict["error"] {
+//                self.activityIndicatorView.stopAnimating()
+//                let alert = UIAlertController(title: "Error", message: val as? String, preferredStyle: UIAlertController.Style.alert)
+//                alert.addAction(UIAlertAction(title: "OK", style: UIAlertAction.Style.default, handler: nil))
+//                self.present(alert, animated: true, completion: nil)
+//            }
+//            else {
+//                for results in response {
+//                    let result = results as! NSDictionary
+//                    // Character
+//                    let thumbnailDict = result["thumbnail"] as! NSDictionary
+//                    let path: String = thumbnailDict["path"] as! String
+//                    let ext: String = thumbnailDict["extension"] as! String
+//                    let thumbnail: String = path + "." + ext
+//                    characters.append(["description":result["description"] as AnyObject,
+//                                       "id": result["id"] as! Int as AnyObject,
+//                                       "name":result["name"] as AnyObject,
+//                                       "resourceURI":result["resourceURI"] as AnyObject,
+//                                       "thumbnail":thumbnail as AnyObject])
+//
+//                    self.characters.append((result["id"] as! Int32, result["name"] as? String, thumbnail, result["description"] as? String))
+//
+//                    // Comics
+//                    let comics = result["comics"] as! NSDictionary
+//                    let comics_items = comics["items"] as! NSArray
+//                    for item in comics_items {
+//                        let itemDict = item as! NSDictionary
+//                        items.append(["category":"comics" as AnyObject,
+//                                      "fk_character_id":result["id"] as! Int as AnyObject,
+//                                      "name":itemDict["name"] as AnyObject,
+//                                      "resourceURI":itemDict["resourceURI"] as AnyObject])
+//                    }
+//                    // Series
+//                    let series = result["series"] as! NSDictionary
+//                    let series_items = series["items"] as! NSArray
+//                    for item in series_items {
+//                        let itemDict = item as! NSDictionary
+//                        items.append(["category":"series" as AnyObject,
+//                                      "fk_character_id":result["id"] as! Int as AnyObject,
+//                                      "name":itemDict["name"] as AnyObject,
+//                                      "resourceURI":itemDict["resourceURI"] as AnyObject])
+//                    }
+//                    // Stories
+//                    let stories = result["stories"] as! NSDictionary
+//                    let stories_items = stories["items"] as! NSArray
+//                    for item in stories_items {
+//                        let itemDict = item as! NSDictionary
+//                        items.append(["category":"stories" as AnyObject,
+//                                      "fk_character_id":result["id"] as! Int as AnyObject,
+//                                      "name":itemDict["name"] as AnyObject,
+//                                      "resourceURI":itemDict["resourceURI"] as AnyObject,
+//                                      "type":itemDict["type"] as AnyObject])
+//                    }
+//                    // Events
+//                    let events = result["events"] as! NSDictionary
+//                    let events_items = events["items"] as! NSArray
+//                    for item in events_items {
+//                        let itemDict = item as! NSDictionary
+//                        items.append(["category":"events" as AnyObject,
+//                                      "fk_character_id":result["id"] as! Int as AnyObject,
+//                                      "name":itemDict["name"] as AnyObject,
+//                                      "resourceURI":itemDict["resourceURI"] as AnyObject])
+//                    }
+//                    // Urls
+//                    let URLs = result["urls"] as! NSArray
+//                    for url in URLs {
+//                        let urlDict = url as! NSDictionary
+//                        urls.append(["fk_character_id":result["id"] as! Int as AnyObject, "type":urlDict["type"] as AnyObject, "url":urlDict["url"] as AnyObject])
+//                    }
+//                }
+//                group.leave()
+//            }
+//
+//            group.notify(queue: .main, execute: {
+//                print("Finished all requests.")
+//
+//                // Save to database
+//                print("----------------------")
+//                self.saveCharacterInCoreDataWith(array: characters)
+//                self.saveItemInCoreDataWith(array: items)
+//                self.saveUrlInCoreDataWith(array: urls)
+//
+//                self.activityIndicatorView.stopAnimating()
+//
+//                self.navigationItem.rightBarButtonItem?.isEnabled = true
+//
+//                self.tableView.separatorStyle = .singleLine
+//                self.tableView.reloadData()
+//            })
+//        }
     }
     
     // MARK: - Search Button Tapped
@@ -205,9 +214,9 @@ class MainTableViewController: UITableViewController {
         let cell = tableView.dequeueReusableCell(withIdentifier: "CharactersTableCell", for: indexPath) as! MainTableViewCell
         // Configure the cell...
         // Name
-        cell.titleLabel.text = characters[indexPath.row].name!
+        cell.titleLabel.text = characters[indexPath.row].name
         // Image
-        cell.characterImageView?.sd_setImage(with: URL(string: characters[indexPath.row].thumbnail!))
+        cell.characterImageView?.sd_setImage(with: URL(string: characters[indexPath.row].thumbnail))
         return cell
     }
     
@@ -229,8 +238,8 @@ class MainTableViewController: UITableViewController {
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         selectedCharacter.id = characters[indexPath.row].id
         selectedCharacter.thumbnail = characters[indexPath.row].thumbnail
-        selectedCharacter.name = characters[indexPath.row].name!
-        selectedCharacter.description = characters[indexPath.row].description
+        selectedCharacter.name = characters[indexPath.row].name
+        selectedCharacter.desc = characters[indexPath.row].desc
      
         self.performSegue(withIdentifier:"CharacterDetailsViewSegueID",sender: nil)
     }
@@ -243,8 +252,8 @@ class MainTableViewController: UITableViewController {
         // Pass the selected object to the new view controller.
         if let destViewController = segue.destination as? CharacterDetailsViewController {
             destViewController.character = selectedCharacter
-            destViewController.items = self.fetchItemEntityDataPerCharacterID(characterID: selectedCharacter.id)
-            destViewController.urls = self.fetchUrlEntityDataPerCharacterID(characterID: selectedCharacter.id)
+            destViewController.items = self.fetchItemEntityDataPerCharacterID(characterID: Int32(selectedCharacter.id))
+            destViewController.urls = self.fetchUrlEntityDataPerCharacterID(characterID: Int32(selectedCharacter.id))
         }
         if let destViewController = segue.destination as? FilteredCharactersViewController {
             destViewController.characters = self.characters

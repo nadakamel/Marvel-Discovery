@@ -7,31 +7,33 @@
 //
 
 import UIKit
+import WebKit
 
-class RelatedLinksViewController: UIViewController, UIWebViewDelegate {
+class RelatedLinksViewController: UIViewController, WKNavigationDelegate {
 
     var relatedLink : (type: String, url: String) = ("","")
     
-    @IBOutlet weak var webView: UIWebView!
+    @IBOutlet weak var webView: WKWebView!
     
     override func viewDidLoad() {
         super.viewDidLoad()
         self.navigationController?.navigationBar.topItem?.title = " "
         
         self.title = relatedLink.type.capitalized
-        webView.delegate = self
+        webView.navigationDelegate = self
         
         if Connectivity.isConnectedToInternet() {
             print("Yes! Internet is available.")
             if let url = URL(string: relatedLink.url) {
                 let request = URLRequest(url: url)
-                webView.loadRequest(request)
+                webView.load(request)
+                webView.allowsBackForwardNavigationGestures = true
             }
         }
         else {
             print("No internet is available!")
-            let alert = UIAlertController(title: "Error", message: "No internet connection.", preferredStyle: UIAlertControllerStyle.alert)
-            alert.addAction(UIAlertAction(title: "OK", style: UIAlertActionStyle.default, handler: nil))
+            let alert = UIAlertController(title: "Error", message: "No internet connection.", preferredStyle: UIAlertController.Style.alert)
+            alert.addAction(UIAlertAction(title: "OK", style: UIAlertAction.Style.default, handler: nil))
             self.present(alert, animated: true, completion: nil)
         }
     }
@@ -42,16 +44,5 @@ class RelatedLinksViewController: UIViewController, UIWebViewDelegate {
         self.navigationController?.isNavigationBarHidden = false
         self.navigationController?.hidesBarsOnSwipe = false
     }
-    
-
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destinationViewController.
-        // Pass the selected object to the new view controller.
-    }
-    */
 
 }

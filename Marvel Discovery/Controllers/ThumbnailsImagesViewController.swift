@@ -21,7 +21,7 @@ class ThumbnailsImagesViewController: UIViewController, UICollectionViewDelegate
         super.viewDidLoad()
         self.navigationController?.navigationBar.topItem?.title = " "
         
-        let backButton = UIBarButtonItem(title: "", style: UIBarButtonItemStyle.plain, target: navigationController, action: nil)
+        let backButton = UIBarButtonItem(title: "", style: UIBarButtonItem.Style.plain, target: navigationController, action: nil)
         navigationItem.leftBarButtonItem = backButton
         
         // Right Navigation Bar Item
@@ -36,7 +36,7 @@ class ThumbnailsImagesViewController: UIViewController, UICollectionViewDelegate
         navigationController?.hidesBarsOnSwipe = false
     }
     
-    func closeBtnTapped() {
+    @objc func closeBtnTapped() {
         print("Close Button Pressed!")
         self.navigationController?.popViewController(animated: true)
     }
@@ -50,8 +50,8 @@ class ThumbnailsImagesViewController: UIViewController, UICollectionViewDelegate
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: self.resuseIdentifier, for: indexPath) as! ThumbnailsImagesCollectionViewCell
-        cell.imageView.sd_setShowActivityIndicatorView(true)
-        cell.imageView.sd_setIndicatorStyle(.white)
+//        cell.imageView.sd_setShowActivityIndicatorView(true)
+//        cell.imageView.sd_setIndicatorStyle(.white)
         cell.imageView.sd_setImage(with: URL(string: gallery[indexPath.row].image))
         cell.imageTitleLbl.text = gallery[indexPath.row].name
         cell.imageNumLbl.text = "\(indexPath.row+1)/\(gallery.count)"
@@ -61,15 +61,5 @@ class ThumbnailsImagesViewController: UIViewController, UICollectionViewDelegate
     func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
         print("Selected section: \(indexPath.section), row: \(indexPath.row)")
     }
-
-    /*
-    // MARK: - Navigation
-
-    // In a storyboard-based application, you will often want to do a little preparation before navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        // Get the new view controller using segue.destinationViewController.
-        // Pass the selected object to the new view controller.
-    }
-    */
 
 }

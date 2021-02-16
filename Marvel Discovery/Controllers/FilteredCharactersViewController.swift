@@ -16,10 +16,10 @@ class FilteredCharactersTableViewCell: UITableViewCell {
 
 class FilteredCharactersViewController: UIViewController, UITableViewDelegate, UITableViewDataSource {
 
-    var characters = [(id: Int32, name: String?, thumbnail: String?, description: String?)]()
-    var filteredCharacters = [(id: Int32, name: String?, thumbnail: String?, description: String?)]()
+    var characters = [Character]()
+    var filteredCharacters = [Character]()
     
-    var selectedCharacter: (id: Int32, name: String?, thumbnail: String?, description: String?) = (0,"","","")
+    var selectedCharacter = Character()
     
     let searchController = UISearchController(searchResultsController: nil)
     
@@ -30,7 +30,7 @@ class FilteredCharactersViewController: UIViewController, UITableViewDelegate, U
         super.viewDidLoad()
         self.navigationController?.navigationBar.topItem?.title = " "
         
-        let backButton = UIBarButtonItem(title: "", style: UIBarButtonItemStyle.plain, target: navigationController, action: nil)
+        let backButton = UIBarButtonItem(title: "", style: UIBarButtonItem.Style.plain, target: navigationController, action: nil)
         navigationItem.leftBarButtonItem = backButton
         
         self.filteredCharactersTableView.backgroundColor = UIColor(red: 41.0/255.0, green: 44.0/255.0, blue: 48.0/255.0, alpha: 1.0)
@@ -74,7 +74,7 @@ class FilteredCharactersViewController: UIViewController, UITableViewDelegate, U
         cell.characterNameLabel?.text = filteredCharacters[indexPath.row].name
         cell.characterNameLabel?.textColor = UIColor.white
         // Image
-        cell.characterImageView?.sd_setImage(with: URL(string: filteredCharacters[indexPath.row].thumbnail!))
+        cell.characterImageView?.sd_setImage(with: URL(string: filteredCharacters[indexPath.row].thumbnail))
         return cell
     }
     
@@ -83,8 +83,8 @@ class FilteredCharactersViewController: UIViewController, UITableViewDelegate, U
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         selectedCharacter.id = filteredCharacters[indexPath.row].id
         selectedCharacter.thumbnail = filteredCharacters[indexPath.row].thumbnail
-        selectedCharacter.name = filteredCharacters[indexPath.row].name!
-        selectedCharacter.description = filteredCharacters[indexPath.row].description
+        selectedCharacter.name = filteredCharacters[indexPath.row].name
+        selectedCharacter.desc = filteredCharacters[indexPath.row].desc
         
         self.performSegue(withIdentifier:"CharacterDetailsViewSegueID",sender: nil)
     }
@@ -96,13 +96,12 @@ class FilteredCharactersViewController: UIViewController, UITableViewDelegate, U
             // Initialize and perform a minimum configuration to the search controller.
             navigationController?.navigationBar.prefersLargeTitles = false
             navigationItem.title = nil
-            navigationController?.navigationBar.largeTitleTextAttributes = [NSForegroundColorAttributeName : UIColor.black]
+            navigationController?.navigationBar.largeTitleTextAttributes = [NSAttributedString.Key.foregroundColor : UIColor.black]
             navigationController?.navigationBar.barTintColor = UIColor.black
             navigationItem.hidesSearchBarWhenScrolling = false
             self.searchController.delegate = self
             self.searchController.searchResultsUpdater = self
             self.searchController.hidesNavigationBarDuringPresentation = false
-            self.searchController.dimsBackgroundDuringPresentation = false
             self.searchController.searchBar.sizeToFit()
             self.searchController.searchBar.delegate = self
             self.searchController.searchBar.tintColor = UIColor.red
@@ -142,8 +141,8 @@ class FilteredCharactersViewController: UIViewController, UITableViewDelegate, U
         // Pass the selected object to the new view controller.
         if let destViewController = segue.destination as? CharacterDetailsViewController {
             destViewController.character = selectedCharacter
-            destViewController.items = self.fetchItemEntityDataPerCharacterID(characterID: selectedCharacter.id)
-            destViewController.urls = self.fetchUrlEntityDataPerCharacterID(characterID: selectedCharacter.id)
+            destViewController.items = self.fetchItemEntityDataPerCharacterID(characterID: Int32(selectedCharacter.id))
+            destViewController.urls = self.fetchUrlEntityDataPerCharacterID(characterID: Int32(selectedCharacter.id))
         }
     }
 
@@ -167,8 +166,8 @@ extension FilteredCharactersViewController: UISearchResultsUpdating {
             // Get search text.
             let searchText = searchController.searchBar.text
             // Filter the data array and get only those name that match the search text.
-            self.filteredCharacters = self.characters.filter({( character : (id: Int32, name: String?, thumbnail: String?, description: String?)) -> Bool in
-                return (character.name?.lowercased().contains(searchText!.lowercased()))!
+            self.filteredCharacters = self.characters.filter({ (character) -> Bool in
+                return character.name.lowercased().contains(searchText!.lowercased())
             })
             // Reload the tableview.
             self.filteredCharactersTableView.separatorStyle = .singleLine
